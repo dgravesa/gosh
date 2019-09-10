@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
 	"log"
+	"os"
+	"strings"
 )
 
 const patternDescription = "Pattern to match"
@@ -28,5 +32,27 @@ func main() {
 	// TODO: make this such that no file specified reads from stdin
 	if flag.NArg() != 1 {
 		log.Fatal("grep: No file specified")
+	}
+
+	fileName := flag.Arg(0)
+
+	// open file
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// read lines in file
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		// print line if it contains the pattern
+		if strings.Contains(scanner.Text(), pattern) {
+			fmt.Println(scanner.Text())
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
 	}
 }
