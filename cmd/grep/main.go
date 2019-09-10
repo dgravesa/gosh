@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+
+	"bitbucket.org/dangravester/gosh/grep"
 )
 
 const patternDescription = "Pattern to match"
@@ -43,16 +44,32 @@ func main() {
 	}
 	defer file.Close()
 
-	// read lines in file
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		// print line if it contains the pattern
-		if strings.Contains(scanner.Text(), pattern) {
-			fmt.Println(scanner.Text())
-		}
-	}
+	inputChannel := make(chan string)
+	outputChannel := make(chan string)
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+	// create the grep filter
+	grepFilter := grep.MakeFilter(inputChannel, outputChannel, pattern)
+
+	// launch input channel
+	go func() {
+		defer close(inputChannel)
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			inputChannel <- scanner.Text()
+		}
+	}()
+
+	// launch filter
+	go func() {
+		grepFilter.Start()
+
+		// filter returns when input channel is closed
+		// since this is the only feeder to the output channel, close it upon completion
+		close(outputChannel)
+	}()
+
+	// print outputs of the grep filter
+	for outputString := range outputChannel {
+		fmt.Println(outputString)
 	}
 }
