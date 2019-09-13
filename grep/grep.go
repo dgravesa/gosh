@@ -9,8 +9,8 @@ type Filter struct {
 	match         func(s string) bool
 }
 
-// MakeFilter creates a grep Filter.
-func MakeFilter(inputChannel, outputChannel chan string, pattern string) Filter {
+// NewFilter creates a grep Filter.
+func NewFilter(inputChannel, outputChannel chan string, pattern string) *Filter {
 	filter := Filter{
 		InputChannel:  inputChannel,
 		OutputChannel: outputChannel,
@@ -19,7 +19,7 @@ func MakeFilter(inputChannel, outputChannel chan string, pattern string) Filter 
 		},
 	}
 
-	return filter
+	return &filter
 }
 
 // Start starts a filter's processing.

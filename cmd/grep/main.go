@@ -48,7 +48,7 @@ func main() {
 	outputChannel := make(chan string)
 
 	// create the grep filter
-	grepFilter := grep.MakeFilter(inputChannel, outputChannel, pattern)
+	grepFilter := grep.NewFilter(inputChannel, outputChannel, pattern)
 
 	// launch input channel
 	go func() {
