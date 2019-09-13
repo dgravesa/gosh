@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,42 +9,25 @@ import (
 	"bitbucket.org/dangravester/gosh/grep"
 )
 
-const patternDescription = "Pattern to match"
-
-// long option
-// TODO: pattern should be allowed as first non-option argument
-var patternFlag = flag.String("pattern", "", patternDescription)
-
-func init() {
-	// short option
-	flag.StringVar(patternFlag, "p", "", patternDescription)
-}
-
 func main() {
-	flag.Parse()
-
-	pattern := *patternFlag
-	if len(pattern) == 0 {
-		log.Fatal("grep: No pattern specified")
+	// create filter with command line arguments
+	grepFilter, fileNames, err := grep.NewFilterFromArgs(os.Args[1:])
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// for now, handle a single file and return error if one is not specified
 	// TODO: make this such that no file specified reads from stdin
-	if flag.NArg() != 1 {
+	if len(fileNames) < 1 {
 		log.Fatal("grep: No file specified")
 	}
 
-	fileName := flag.Arg(0)
-
 	// open file
-	file, err := os.Open(fileName)
+	file, err := os.Open(fileNames[0])
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
-	// create the grep filter
-	grepFilter := grep.NewFilter(pattern)
 
 	// launch input channel
 	inputChannel := make(chan string)
