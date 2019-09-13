@@ -44,13 +44,11 @@ func main() {
 	}
 	defer file.Close()
 
-	inputChannel := make(chan string)
-	outputChannel := make(chan string)
-
 	// create the grep filter
-	grepFilter := grep.NewFilter(inputChannel, outputChannel, pattern)
+	grepFilter := grep.NewFilter(pattern)
 
 	// launch input channel
+	inputChannel := make(chan string)
 	go func() {
 		defer close(inputChannel)
 		scanner := bufio.NewScanner(file)
@@ -60,8 +58,9 @@ func main() {
 	}()
 
 	// launch filter
+	outputChannel := make(chan string)
 	go func() {
-		grepFilter.Start()
+		grepFilter.Start(inputChannel, outputChannel)
 
 		// filter returns when input channel is closed
 		// since this is the only feeder to the output channel, close it upon completion

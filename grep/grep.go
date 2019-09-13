@@ -1,19 +1,17 @@
 package grep
 
-import "strings"
+import (
+	"strings"
+)
 
 // Filter passes strings that match a pattern on the input channel to the output channel.
 type Filter struct {
-	InputChannel  chan string
-	OutputChannel chan string
-	match         func(s string) bool
+	match func(s string) bool
 }
 
-// NewFilter creates a grep Filter.
-func NewFilter(inputChannel, outputChannel chan string, pattern string) *Filter {
+// NewFilter creates a basic pattern-matching grep Filter.
+func NewFilter(pattern string) *Filter {
 	filter := Filter{
-		InputChannel:  inputChannel,
-		OutputChannel: outputChannel,
 		match: func(s string) bool {
 			return strings.Contains(s, pattern)
 		},
@@ -22,11 +20,11 @@ func NewFilter(inputChannel, outputChannel chan string, pattern string) *Filter 
 	return &filter
 }
 
-// Start starts a filter's processing.
-func (filter *Filter) Start() {
-	for inputString := range filter.InputChannel {
+// Start turns on a filter's processing.
+func (filter *Filter) Start(inputChannel, outputChannel chan string) {
+	for inputString := range inputChannel {
 		if filter.match(inputString) {
-			filter.OutputChannel <- inputString
+			outputChannel <- inputString
 		}
 	}
 }
