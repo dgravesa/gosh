@@ -67,10 +67,19 @@ func NewFilterFromArgs(arguments []string) (*Filter, []string, error) {
 
 // Start turns on a filter's processing.
 func (filter *Filter) Start(inputChannel, outputChannel chan string) {
+	lineNum := 1
 	for inputString := range inputChannel {
 		if filter.match(inputString) {
-			outputChannel <- inputString
+			// create output string
+			var outputString string
+			switch filter.printLineNum {
+			case true:
+				outputString = fmt.Sprintf("%d:%s", lineNum, inputString)
+			default:
+				outputString = inputString
+			}
+			outputChannel <- outputString
 		}
+		lineNum++
 	}
-	// TODO: use printLineNum to decide whether or not to print line num
 }
