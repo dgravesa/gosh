@@ -38,16 +38,28 @@ func (filter *Filter) NumLines() int {
 }
 
 // Start begins processing of the head filter, which stops after the number of lines has been processed.
-func (filter *Filter) Start(inputChannel, outputChannel chan string) {
-	numLinesPassed := 0
+func (filter *Filter) Start(inputChannel <-chan string, done <-chan struct{}) <-chan string {
+	outputChannel := make(chan string)
 
-	for inputString := range inputChannel {
-		outputChannel <- inputString
+	go func() {
+		defer close(outputChannel)
+		numLinesPassed := 0
 
-		numLinesPassed++
+		for inputString := range inputChannel {
+			// block until send or done signal received
+			select {
+			case outputChannel <- inputString:
+			case <-done:
+				return
+			}
 
-		if numLinesPassed == filter.numLines {
-			break
+			numLinesPassed++
+
+			if numLinesPassed == filter.numLines {
+				break
+			}
 		}
-	}
+	}()
+
+	return outputChannel
 }
