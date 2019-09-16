@@ -66,20 +66,43 @@ func NewFilterFromArgs(arguments []string) (*Filter, []string, error) {
 }
 
 // Start turns on a filter's processing.
-func (filter *Filter) Start(inputChannel, outputChannel chan string) {
-	lineNum := 1
-	for inputString := range inputChannel {
-		if filter.match(inputString) {
-			// create output string
-			var outputString string
-			switch filter.printLineNum {
-			case true:
-				outputString = fmt.Sprintf("%d:%s", lineNum, inputString)
-			default:
-				outputString = inputString
+func (filter *Filter) Start(inputChannel <-chan string, done <-chan struct{}) <-chan string {
+	outputChannel := make(chan string)
+
+	// launch filter processing goroutine
+	go func() {
+		// filter is responsible for closing its output channel once complete
+		defer close(outputChannel)
+		lineNum := 1
+
+		for inputString := range inputChannel {
+			if filter.match(inputString) {
+				// create output string
+				var outputString string
+				switch filter.printLineNum {
+				case true:
+					outputString = fmt.Sprintf("%d:%s", lineNum, inputString)
+				default:
+					outputString = inputString
+				}
+
+				// block until string sends or done signal is received by closing the done channel
+				select {
+				case outputChannel <- outputString:
+				case <-done:
+					return
+				}
+			} else {
+				// check for done signal
+				select {
+				case <-done:
+					return
+				default:
+				}
 			}
-			outputChannel <- outputString
+			lineNum++
 		}
-		lineNum++
-	}
+	}()
+
+	return outputChannel
 }

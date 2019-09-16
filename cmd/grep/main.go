@@ -22,6 +22,10 @@ func main() {
 		log.Fatal("grep: No file specified")
 	}
 
+	// NOTE: unused, but done to adhere to pipeline pattern
+	doneChannel := make(chan struct{})
+	defer close(doneChannel)
+
 	// open file
 	file, err := os.Open(fileNames[0])
 	if err != nil {
@@ -30,27 +34,25 @@ func main() {
 	defer file.Close()
 
 	// launch input channel
+	// TODO: make this into a utility
 	inputChannel := make(chan string)
 	go func() {
 		defer close(inputChannel)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			inputChannel <- scanner.Text()
+			select {
+			case inputChannel <- scanner.Text():
+			case <-doneChannel:
+				return
+			}
 		}
 	}()
 
 	// launch filter
-	outputChannel := make(chan string)
-	go func() {
-		grepFilter.Start(inputChannel, outputChannel)
-
-		// filter returns when input channel is closed
-		// since this is the only feeder to the output channel, close it upon completion
-		close(outputChannel)
-	}()
+	grepOutputChannel := grepFilter.Start(inputChannel, doneChannel)
 
 	// print outputs of the grep filter
-	for outputString := range outputChannel {
+	for outputString := range grepOutputChannel {
 		fmt.Println(outputString)
 	}
 }
