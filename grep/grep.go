@@ -23,6 +23,7 @@ func NewDefaultFilterParams(pattern string) *FilterParams {
 	return &FilterParams{
 		Pattern:      pattern,
 		PrintLineNum: false,
+		InvertMatch:  false,
 	}
 }
 
