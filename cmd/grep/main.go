@@ -12,6 +12,7 @@ import (
 )
 
 var printLineNum = flag.Bool("n", false, "Print line number with output lines")
+var invertMatch = flag.Bool("v", false, "Select non-matching lines")
 
 // TODO: make this a common utility
 // newInputChannel returns a readable channel which passes lines from r as they are read.
@@ -41,6 +42,7 @@ func main() {
 	pattern := flag.Arg(0)
 	filterParams := grep.NewDefaultFilterParams(pattern)
 	filterParams.PrintLineNum = *printLineNum
+	filterParams.InvertMatch = *invertMatch
 	filter := grep.NewFilter(filterParams)
 
 	// create output channel

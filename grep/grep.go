@@ -9,6 +9,7 @@ import (
 type FilterParams struct {
 	Pattern      string
 	PrintLineNum bool
+	InvertMatch  bool
 }
 
 // Filter passes strings that match a pattern on the input channel to the output channel.
@@ -27,9 +28,11 @@ func NewDefaultFilterParams(pattern string) *FilterParams {
 
 // NewFilter creates a grep filter from params
 func NewFilter(params *FilterParams) *Filter {
+	invertMatch := params.InvertMatch
+
 	return &Filter{
 		match: func(s string) bool {
-			return strings.Contains(s, params.Pattern)
+			return strings.Contains(s, params.Pattern) == !invertMatch
 		},
 		printLineNum: params.PrintLineNum,
 	}
