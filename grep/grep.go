@@ -5,19 +5,33 @@ import (
 	"strings"
 )
 
+// FilterParams is a struct containing parameters to create a grep filter.
+type FilterParams struct {
+	Pattern      string
+	PrintLineNum bool
+}
+
 // Filter passes strings that match a pattern on the input channel to the output channel.
 type Filter struct {
 	match        func(s string) bool
 	printLineNum bool
 }
 
-// NewFilter creates a grep filter
-func NewFilter(pattern string, printLineNum bool) *Filter {
+// NewDefaultFilterParams returns a default set of filter parameters.
+func NewDefaultFilterParams(pattern string) *FilterParams {
+	return &FilterParams{
+		Pattern:      pattern,
+		PrintLineNum: false,
+	}
+}
+
+// NewFilter creates a grep filter from params
+func NewFilter(params *FilterParams) *Filter {
 	return &Filter{
 		match: func(s string) bool {
-			return strings.Contains(s, pattern)
+			return strings.Contains(s, params.Pattern)
 		},
-		printLineNum: printLineNum,
+		printLineNum: params.PrintLineNum,
 	}
 }
 

@@ -39,7 +39,9 @@ func main() {
 
 	// create grep filter
 	pattern := flag.Arg(0)
-	filter := grep.NewFilter(pattern, *printLineNum)
+	filterParams := grep.NewDefaultFilterParams(pattern)
+	filterParams.PrintLineNum = *printLineNum
+	filter := grep.NewFilter(filterParams)
 
 	// create output channel
 	outputChannel := make(chan string)
