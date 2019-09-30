@@ -1,7 +1,9 @@
 package grep
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -27,7 +29,7 @@ func NewDefaultFilterParams(pattern string) *FilterParams {
 	}
 }
 
-// NewFilter creates a grep filter from params
+// NewFilter creates a grep filter from params.
 func NewFilter(params *FilterParams) *Filter {
 	invertMatch := params.InvertMatch
 
@@ -39,34 +41,26 @@ func NewFilter(params *FilterParams) *Filter {
 	}
 }
 
-// Start turns on a filter's processing.
-func (filter *Filter) Start(inputChannel <-chan string) <-chan string {
-	outputChannel := make(chan string)
+// Execute runs input from r through the filter and writes to w.
+func (filter *Filter) Execute(r io.Reader, w io.Writer) error {
+	scanner := bufio.NewScanner(r)
+	lineNum := 1
 
-	// launch filter processing goroutine
-	go func() {
-		// filter is responsible for closing its output channel once complete
-		defer close(outputChannel)
-		lineNum := 1
+	for scanner.Scan() {
+		thisLine := scanner.Text() + "\n"
 
-		// process until input channel is closed
-		for inputString := range inputChannel {
-			if filter.match(inputString) {
-				// create output string
-				var outputString string
-				switch filter.printLineNum {
-				case true:
-					outputString = fmt.Sprintf("%d:%s", lineNum, inputString)
-				default:
-					outputString = inputString
-				}
-
-				// write string to output channel
-				outputChannel <- outputString
+		if filter.match(thisLine) {
+			// add line number to string
+			if filter.printLineNum {
+				thisLine = fmt.Sprintf("%d:%s", lineNum, thisLine)
 			}
-			lineNum++
+			// write string
+			if _, err := w.Write([]byte(thisLine)); err != nil {
+				return err
+			}
 		}
-	}()
+		lineNum++
+	}
 
-	return outputChannel
+	return nil
 }

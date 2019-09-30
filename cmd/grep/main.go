@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -14,21 +13,13 @@ import (
 var printLineNum = flag.Bool("n", false, "Print line number with output lines")
 var invertMatch = flag.Bool("v", false, "Select non-matching lines")
 
-// TODO: make this a common utility
-// newInputChannel returns a readable channel which passes lines from r as they are read.
-// Function closes the returned channel once all lines have been read from r.
-func newInputChannel(r io.Reader) <-chan string {
-	inputChannel := make(chan string)
+type prefixedWriter struct {
+	Receiver io.Writer
+	Prefix   []byte
+}
 
-	go func() {
-		defer close(inputChannel)
-		scanner := bufio.NewScanner(r)
-		for scanner.Scan() {
-			inputChannel <- scanner.Text()
-		}
-	}()
-
-	return inputChannel
+func (w *prefixedWriter) Write(p []byte) (n int, err error) {
+	return w.Receiver.Write([]byte(append(w.Prefix, p...)))
 }
 
 func main() {
@@ -45,56 +36,38 @@ func main() {
 	filterParams.InvertMatch = *invertMatch
 	filter := grep.NewFilter(filterParams)
 
-	// create output channel
-	outputChannel := make(chan string)
-	outputDoneChannel := make(chan struct{})
-
-	// launch output listener
-	go func() {
-		for outputString := range outputChannel {
-			fmt.Println(outputString)
-		}
-		outputDoneChannel <- struct{}{}
-	}()
+	// create output writer
+	decorator := &prefixedWriter{
+		Receiver: os.Stdout,
+	}
 
 	fileNames := flag.Args()[1:]
 
-	// prepend file name to output strings if grepping multiple files
+	// we're going to prepend file name to output lines if grepping multiple files
 	prefixFileNames := len(fileNames) > 1
 
 	if len(fileNames) == 0 {
-		// use stdin if no file names given
-		inputChannel := newInputChannel(os.Stdin)
-		filterOutputChannel := filter.Start(inputChannel)
-
-		// forward to output channel
-		for outputLine := range filterOutputChannel {
-			outputChannel <- outputLine
+		// parse on stdin
+		err := filter.Execute(os.Stdin, decorator)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 		}
 	} else {
 		// parse each file name given
 		for _, fileName := range fileNames {
-			f, err := os.Open(fileName)
-
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "grep: %s: No such file or directory\n", fileName)
+			if f, err := os.Open(fileName); err != nil {
+				fmt.Fprintln(os.Stderr, err)
 			} else {
-				inputChannel := newInputChannel(f)
-				filterOutputChannel := filter.Start(inputChannel)
+				defer f.Close()
+				if prefixFileNames {
+					decorator.Prefix = []byte(fileName + ":")
+				}
 
-				// forward to output channel
-				for outputLine := range filterOutputChannel {
-					if prefixFileNames {
-						outputLine = fileName + ":" + outputLine
-					}
-					outputChannel <- outputLine
+				err = filter.Execute(f, decorator)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
 				}
 			}
 		}
 	}
-
-	close(outputChannel)
-
-	// ensure output writer has completed
-	<-outputDoneChannel
 }
