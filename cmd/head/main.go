@@ -1,56 +1,49 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"bitbucket.org/dangravester/gosh/head"
 )
 
+var numLines = flag.Int("n", 10, "Number of lines to print")
+
 func main() {
-	// create head filter with command line arguments
-	headFilter, fileNames, err := head.NewFilterFromArgs(os.Args[1:])
-	if err != nil {
-		log.Fatal(err)
+	flag.Parse()
+
+	// create head filter
+	filter := head.Filter{
+		NumLines: *numLines,
 	}
 
-	// TODO: allow from stdin if no files specified
-	if len(fileNames) < 1 {
-		log.Fatal("head: No file specified")
-	}
+	fileNames := flag.Args()
 
-	doneChannel := make(chan struct{})
-	defer close(doneChannel)
+	// print file names before executing if multiple files used as input
+	printFileHeader := len(fileNames) > 1
 
-	// TODO: allow multiple files in succession
-	fileName := fileNames[0]
-	file, err := os.Open(fileName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	// launch input channel
-	inputChannel := make(chan string)
-	go func() {
-		defer close(inputChannel)
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			select {
-			case inputChannel <- scanner.Text():
-			case <-doneChannel:
-				return
+	if len(fileNames) == 0 {
+		// run head filter on stdin
+		err := filter.Execute(os.Stdin, os.Stdout)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	} else {
+		for _, fileName := range fileNames {
+			if f, err := os.Open(fileName); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			} else {
+				defer f.Close()
+				if printFileHeader {
+					fmt.Printf("==> %s <==\n", fileName)
+				}
+				// run head filter on file
+				err = filter.Execute(f, os.Stdout)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
 			}
 		}
-	}()
-
-	// launch head filter
-	headOutputChannel := headFilter.Start(inputChannel, doneChannel)
-
-	// print output channel
-	for outputString := range headOutputChannel {
-		fmt.Println(outputString)
 	}
 }
