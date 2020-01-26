@@ -10,11 +10,15 @@ import (
 	goshio "bitbucket.org/dangravester/gosh/io"
 )
 
-var printLineNum = flag.Bool("n", false, "Print line number with output lines")
-var invertMatch = flag.Bool("v", false, "Select non-matching lines")
+var printLineNumFlag = flag.Bool("n", false, "Print line number with output lines")
+var invertMatchFlag = flag.Bool("v", false, "Select non-matching lines")
+var recurseDirectoriesFlag = flag.Bool("r", false, "Parse directories recursively")
 
 func main() {
 	flag.Parse()
+	printLineNum := *printLineNumFlag
+	invertMatch := *invertMatchFlag
+	recurseDirectories := *recurseDirectoriesFlag
 
 	if flag.NArg() < 1 {
 		log.Fatal("grep: No pattern specified")
@@ -23,25 +27,33 @@ func main() {
 	// create grep filter
 	pattern := flag.Arg(0)
 	filterParams := grep.NewDefaultFilterParams(pattern)
-	filterParams.PrintLineNum = *printLineNum
-	filterParams.InvertMatch = *invertMatch
+	filterParams.PrintLineNum = printLineNum
+	filterParams.InvertMatch = invertMatch
 	filter := grep.NewFilter(filterParams)
 
 	// create output writer
 	prefixedWriter := goshio.NewPrefixedWriter(os.Stdout)
 
-	fileNames := flag.Args()[1:]
+	inputPaths := flag.Args()[1:]
 
 	// we're going to prepend file name to output lines if grepping multiple files
-	prefixFileNames := len(fileNames) > 1
+	prefixFileNames := len(inputPaths) > 1 || recurseDirectories
 
-	if len(fileNames) == 0 {
+	if len(inputPaths) == 0 {
 		// parse on stdin
 		err := filter.Execute(os.Stdin, prefixedWriter)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	} else {
+		var fileNames []string
+
+		if recurseDirectories {
+			fileNames = listRegularFilesWithin(inputPaths)
+		} else {
+			fileNames = checkRegularFiles(inputPaths)
+		}
+
 		// parse each file name given
 		for _, fileName := range fileNames {
 			if f, err := os.Open(fileName); err != nil {
