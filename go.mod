@@ -1,3 +1,3 @@
-module bitbucket.org/dangravester/gosh
+module github.com/dgravesa/gosh
 
 go 1.13

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"bitbucket.org/dangravester/gosh/wc"
+	"github.com/dgravesa/gosh/wc"
 )
 
 var printNumWords = flag.Bool("w", false, "Print number of words")

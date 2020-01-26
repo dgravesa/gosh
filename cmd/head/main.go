@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/dangravester/gosh/head"
+	"github.com/dgravesa/gosh/head"
 )
 
 var numLines = flag.Int("n", 10, "Number of lines to print")

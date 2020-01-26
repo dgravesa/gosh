@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"bitbucket.org/dangravester/gosh/grep"
-	goshio "bitbucket.org/dangravester/gosh/io"
+	"github.com/dgravesa/gosh/grep"
+	goshio "github.com/dgravesa/gosh/io"
 )
 
 var printLineNumFlag = flag.Bool("n", false, "Print line number with output lines")
