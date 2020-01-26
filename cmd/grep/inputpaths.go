@@ -30,9 +30,13 @@ func checkRegularFiles(paths []string) []string {
 func listRegularFilesWithin(paths []string) []string {
 	var regpaths []string
 
+	printError := func(p string, err error) {
+		fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
+	}
+
 	for _, p := range paths {
 		if pathstat, err := os.Stat(p); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
+			printError(p, err)
 		} else {
 			switch mode := pathstat.Mode(); {
 
@@ -42,14 +46,18 @@ func listRegularFilesWithin(paths []string) []string {
 
 			// recursively list regular files within
 			case mode.IsDir():
-				if dir, err := os.Open(p); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
-				} else if subpaths, err := dir.Readdirnames(0); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
+				dir, err := os.Open(p)
+				if err != nil {
+					printError(p, err)
 				} else {
-					fullsubpaths := prefixPaths(p, subpaths)
-					regsubpaths := listRegularFilesWithin(fullsubpaths)
-					regpaths = append(regpaths, regsubpaths...)
+					defer dir.Close()
+					if subpaths, err := dir.Readdirnames(0); err != nil {
+						printError(p, err)
+					} else {
+						fullsubpaths := prefixPaths(p, subpaths)
+						regsubpaths := listRegularFilesWithin(fullsubpaths)
+						regpaths = append(regpaths, regsubpaths...)
+					}
 				}
 			}
 		}
