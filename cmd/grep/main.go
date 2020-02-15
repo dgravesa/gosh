@@ -13,12 +13,14 @@ import (
 var printLineNumFlag = flag.Bool("n", false, "Print line number with output lines")
 var invertMatchFlag = flag.Bool("v", false, "Select non-matching lines")
 var recurseDirectoriesFlag = flag.Bool("r", false, "Parse directories recursively")
+var ignoreCaseFlag = flag.Bool("i", false, "Ignore case distinctions")
 
 func main() {
 	flag.Parse()
 	printLineNum := *printLineNumFlag
 	invertMatch := *invertMatchFlag
 	recurseDirectories := *recurseDirectoriesFlag
+	ignoreCase := *ignoreCaseFlag
 
 	if flag.NArg() < 1 {
 		log.Fatal("grep: No pattern specified")
@@ -29,6 +31,7 @@ func main() {
 	filterParams := grep.NewDefaultFilterParams(pattern)
 	filterParams.PrintLineNum = printLineNum
 	filterParams.InvertMatch = invertMatch
+	filterParams.IgnoreCase = ignoreCase
 	filter := grep.NewFilter(filterParams)
 
 	// create output writer

@@ -12,6 +12,7 @@ type FilterParams struct {
 	Pattern      string
 	PrintLineNum bool
 	InvertMatch  bool
+	IgnoreCase   bool
 }
 
 // Filter passes strings that match a pattern on the input channel to the output channel.
@@ -26,6 +27,7 @@ func NewDefaultFilterParams(pattern string) *FilterParams {
 		Pattern:      pattern,
 		PrintLineNum: false,
 		InvertMatch:  false,
+		IgnoreCase:   false,
 	}
 }
 
@@ -33,9 +35,23 @@ func NewDefaultFilterParams(pattern string) *FilterParams {
 func NewFilter(params *FilterParams) *Filter {
 	invertMatch := params.InvertMatch
 
+	// get pattern to match on
+	var pattern string
+	if params.IgnoreCase {
+		pattern = strings.ToLower(params.Pattern)
+	} else {
+		pattern = params.Pattern
+	}
+
 	return &Filter{
-		match: func(s string) bool {
-			return strings.Contains(s, params.Pattern) == !invertMatch
+		match: func(input string) bool {
+			var s string
+			if params.IgnoreCase {
+				s = strings.ToLower(input)
+			} else {
+				s = input
+			}
+			return strings.Contains(s, pattern) == !invertMatch
 		},
 		printLineNum: params.PrintLineNum,
 	}
