@@ -14,6 +14,7 @@ and as a way to better familiarize myself with Golang.
 * `-r` handle directories recursively
 * `-n` print line numbers
 * `-v` invert match
+* `-i` ignore case
 
 ### wc
 * `-w, -c, -l` all implemented for getting word, character, and line counts selectively
